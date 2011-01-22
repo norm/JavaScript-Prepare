@@ -19,6 +19,28 @@ sub new {
     return $self;
 }
 
+sub process {
+    my $self = shift;
+    my @args = @_;
+    
+    my $minified = '';
+    foreach my $arg ( @args ) {
+        given ( $arg ) {
+            when ( -f $arg ) {
+                $minified .= $self->process_file( $arg );
+            }
+            when ( -d $arg ) {
+                $minified .= $self->process_directory( $arg );
+            }
+            default {
+                return '';
+            }
+        }
+    }
+    
+    return $minified;
+}
+
 sub process_string {
     my $self = shift;
     my $js   = shift;
@@ -98,7 +120,6 @@ sub process_directory {
     
     return $minified;
 }
-
 sub get_files_in_directory {
     my $self      = shift;
     my $directory = shift;
