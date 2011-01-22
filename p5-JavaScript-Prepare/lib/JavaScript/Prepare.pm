@@ -4,6 +4,7 @@ use 5.010;
 use strict;
 use warnings;
 
+use File::Basename;
 use FileHandle;
 use JavaScript::Minifier::XS    qw( minify );
 
@@ -36,7 +37,38 @@ sub process_file {
     my $content = $self->read_file( $file );
     return '' unless $content;
     
-    return $self->process_string( $content );
+    my $control_file = $content =~ m{^# control file};
+    
+    if ( $control_file ) {
+        return $self->process_control_file( $file );
+    }
+    else {
+        return $self->process_string( $content );
+    }
+}
+sub process_control_file {
+    my $self = shift;
+    my $file = shift;
+    
+    my $dir     = dirname $file;
+    my $content = $self->read_file( $file );
+    my @lines   = split m{\n}, $content;
+    
+    my $minified = '';
+    foreach my $line ( @lines ) {
+        # 
+        $line =~ m{
+            ^ 
+                ( \S+ )?            # $1: a filename
+                \s* (?: \# .* )?    # optional comment
+            $
+        }x;
+        
+        $minified .= $self->process_file( "$dir/$1" )
+            if defined $1;
+    }
+    
+    return $minified;
 }
 sub read_file {
     my $self = shift;
